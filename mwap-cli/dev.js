@@ -227,8 +227,9 @@ Promise.all([
   import(${JSON.stringify(appScript)}),
   import(${JSON.stringify(pageScript)}),
 ]).then(([React, clientModule, appModule, pageModule]) => {
+  const hydrate = clientModule.default;
   const routes = [${clientRoutes}];
-  return clientModule.default({
+  return hydrate({
     App: appModule.default,
     routes
   });

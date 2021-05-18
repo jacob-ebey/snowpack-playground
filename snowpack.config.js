@@ -15,7 +15,6 @@ const config = {
     [path.resolve(__dirname, "mwap")]: "/mwap",
   },
   packageOptions: {
-    source: "remote",
     external: ["remark-prism"],
   },
 };

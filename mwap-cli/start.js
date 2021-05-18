@@ -1,4 +1,5 @@
 import fs from "fs";
+import { createRequire } from "module";
 import path from "path";
 import { pathToFileURL } from "url";
 
@@ -9,6 +10,8 @@ import { matchPath } from "react-router-dom";
 import webpackFlushChunks from "webpack-flush-chunks";
 
 import stringify from "json-stringify-deterministic";
+
+const require = createRequire(import.meta.url);
 
 const flushChunks = webpackFlushChunks.default;
 const cwd = process.cwd();
@@ -57,12 +60,19 @@ const createLoaderContext = (load) => {
   };
 };
 
+const getMod = (container, mod) =>
+  container.get(mod).then((factory) => factory());
+const getDefault = (container, mod) =>
+  getMod(container, mod).then((m) => m.default);
+
 (async () => {
   const json = await fs.promises.readFile(
     path.resolve(cwd, "dist/production/stats.json"),
     "utf8"
   );
   const stats = JSON.parse(json);
+  const mwapContainer = require(path.resolve(cwd, "dist/cjs/mwap.cjs"));
+  await mwapContainer.init({});
 
   const app = fastify();
 
@@ -76,10 +86,8 @@ const createLoaderContext = (load) => {
     const encodedParams = request.params.encodedParams.replace(/\.json$/, "");
     const params = decodeParams(encodedParams);
 
-    const loaderModule = await import(
-      pathToFileURL(path.resolve(cwd, `dist/esm/src/loaders/${loader}.js`))
-    );
-    const result = await loaderModule.default(params);
+    const loaderFunc = await getDefault(mwapContainer, `./loaders/${loader}`);
+    const result = await loaderFunc(params);
 
     if (result.headers) {
       reply.headers(result.headers);
@@ -92,21 +100,17 @@ const createLoaderContext = (load) => {
   app.get("/*", async (request, reply) => {
     try {
       const loaderContext = createLoaderContext(async (loader, params) => {
-        const loaderModule = await import(
-          pathToFileURL(path.resolve(cwd, `dist/esm/src/loaders/${loader}.js`))
+        const loaderFunc = await getDefault(
+          mwapContainer,
+          `./loaders/${loader}`
         );
-        const result = await loaderModule.default(params);
+        const result = await loaderFunc(params);
         // TODO: Handle loader headers.
         return result.data;
       });
 
-      const pagesScript = pathToFileURL(
-        path.resolve(cwd, "dist/esm/src/pages/index.js")
-      );
-      const pagesModule = await import(pagesScript);
-
       /** @type {import("react-router-dom").RouteProps[]} */
-      const pages = pagesModule.default;
+      const pages = await getDefault(mwapContainer, "./pages/index");
 
       let matchedRoute;
       let matchedPage;
@@ -124,36 +128,18 @@ const createLoaderContext = (load) => {
         return;
       }
 
-      const serverScript = pathToFileURL(
-        path.resolve(cwd, "dist/esm/src/server.js")
-      );
-      const pageScript = pathToFileURL(
-        path.resolve(cwd, `dist/esm/src/pages/${matchedPage.module}.js`)
-      );
-      const appScript = pathToFileURL(path.resolve(cwd, "dist/esm/src/app.js"));
-      const documentScript = pathToFileURL(
-        path.resolve(cwd, "dist/esm/src/document.js")
-      );
-
-      const [serverModule, pageModule, appModule, documentModule] =
-        await Promise.all([
-          import(serverScript),
-          import(pageScript),
-          import(appScript),
-          import(documentScript),
-        ]);
-
-      /** @type {import("../mwap/handler").MwapHandler} */
-      const serverHandler = serverModule.default;
-
-      /** @type {import("react").ComponentType<any>} */
-      const Page = pageModule.default;
-
-      /** @type {import("react").ComponentType<any>} */
-      const App = appModule.default;
-
-      /** @type {import("react").ComponentType<import("../mwap/document").DocumentProps>} */
-      const Document = documentModule.default;
+      /**
+       * @typedef {import("../mwap/handler").MwapHandler} MwapHandler
+       * @typedef {import("react").ComponentType<import("../mwap/document").DocumentProps>} DocumentComponent
+       * @typedef {import("react").ComponentType<any>} ComponentType
+       * @type {[MwapHandler, DocumentComponent, ComponentType, ComponentType]}
+       */
+      const [serverHandler, Document, App, Page] = await Promise.all([
+        getDefault(mwapContainer, "./server"),
+        getDefault(mwapContainer, "./document"),
+        getDefault(mwapContainer, "./app"),
+        getDefault(mwapContainer, `./pages/${matchedPage.module}`),
+      ]);
 
       const flushedChunks = flushChunks(stats, {
         chunkNames: [
@@ -182,7 +168,7 @@ const createLoaderContext = (load) => {
 const getMod = (container, mod) => container.get(mod).then((factory) => factory());
 const getDefault = (container, mod) => getMod(container, mod).then((m) => m.default);
 
-Promise.all([
+Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
   getMod(__MWAP_BUNDLE__, "./react"),
   getDefault(__MWAP_BUNDLE__, "./client"),
   getDefault(__MWAP_BUNDLE__, "./app"),
@@ -190,7 +176,7 @@ Promise.all([
 ]).then(([React, hydrate, App, Page]) => {
   const routes = [${clientRoutes}];
   hydrate({ App, routes });
-});
+}));
 `;
 
       const { headers, html } = await serverHandler({
