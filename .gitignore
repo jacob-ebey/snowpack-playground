@@ -1,4 +1,5 @@
 .mwap
+.vercel
 dist
 node_modules
 static

@@ -11,7 +11,8 @@
     "build": "cross-env NODE_ENV=production node ./mwap-cli/build",
     "dev": "cross-env NODE_ENV=development node ./mwap-cli/dev",
     "export": "cross-env NODE_ENV=production node ./mwap-cli/export",
-    "start": "cross-env NODE_ENV=production node ./mwap-cli/start"
+    "start": "cross-env NODE_ENV=production node ./mwap-cli/start",
+    "vercel-build": "npm run build && npm run export"
   },
   "dependencies": {
     "@tailwindcss/typography": "0.4.0",
