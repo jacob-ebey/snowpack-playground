@@ -1,7 +1,6 @@
 import fs from "fs";
 import { createRequire } from "module";
 import path from "path";
-import { pathToFileURL } from "url";
 
 import fastify from "fastify";
 import fastifyStatic from "fastify-static";
