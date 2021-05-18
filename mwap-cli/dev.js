@@ -6,13 +6,9 @@ import fastify from "fastify";
 import fastifyProxy from "fastify-http-proxy";
 import { createConfiguration, loadConfiguration, startServer } from "snowpack";
 
-import ReactRouterDOM from "react-router-dom";
-
 import { fileExists, getBaseConfig } from "./utils.js";
 
 import stringify from "json-stringify-deterministic";
-
-const { matchPath } = ReactRouterDOM;
 
 const encodeParams = (params) => {
   const json = stringify(params);
@@ -26,6 +22,7 @@ const decodeParams = (encodedParams) => {
 };
 
 const createLoaderContext = (load) => {
+  /** @type {import("../mwap/loader").LoaderContextCache} */
   const cache = {};
 
   return {
@@ -90,7 +87,7 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
   console.log("HERE!");
   const reactRefreshScript = getReactRefresh();
 
-  const baseConfig = await getBaseConfig({ cwd });
+  const baseConfig = await getBaseConfig({ cwd, isProd: false });
 
   const configPath = path.resolve(cwd, "snowpack.config.js");
   const config = (await fileExists(configPath))
@@ -128,27 +125,37 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
     http2: false, // optional
   });
 
-  app.get("/_mwap/loader/:loader/:encodedParams", async (request, reply) => {
-    const loader = request.params.loader;
-    const encodedParams = request.params.encodedParams.replace(/\.json$/, "");
-    const params = decodeParams(encodedParams);
+  app.get(
+    "/_mwap/loader/:loader/:encodedParams",
+    /**
+     *
+     * @param {any} request
+     * @param {import("fastify").FastifyReply} reply
+     */
+    async (request, reply) => {
+      const loader = request.params.loader;
+      const encodedParams = request.params.encodedParams.replace(/\.json$/, "");
+      const params = decodeParams(encodedParams);
 
-    const loaderModule = await serverRuntime.importModule(
-      `/src/loaders/${loader}.js`
-    );
-    const result = await loaderModule.exports.default(params);
+      const loaderModule = await serverRuntime.importModule(
+        `/src/loaders/${loader}.js`
+      );
 
-    if (result.headers) {
-      reply.headers(result.headers);
+      const result = await loaderModule.exports.default(params);
+
+      if (result.headers) {
+        reply.headers(result.headers);
+      }
+
+      reply.status(200);
+      reply.send(result.data);
     }
-
-    reply.status(200);
-    reply.send(result.data);
-  });
+  );
 
   app.get("/*", async (request, reply) => {
     try {
       const loaderContext = createLoaderContext(async (loader, params) => {
+        console.log("params", params);
         const loaderModule = await serverRuntime.importModule(
           `/src/loaders/${loader}.js`
         );
@@ -157,13 +164,21 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
         return result.data;
       });
 
+      const reactRouterDomModule = await serverRuntime.importModule(
+        await server.getUrlForPackage("react-router-dom")
+      );
       const pagesModule = await serverRuntime.importModule(
         "/src/pages/index.js"
       );
+
+      /** @type {import("react-router-dom").matchPath} */
+      const matchPath = reactRouterDomModule.exports.matchPath;
       /** @type {import("../mwap/pages").Page[]} */
       const pages = pagesModule.exports.default;
 
+      /** @type {import("react-router-dom").match} */
       let matchedRoute;
+      /** @type {import("../mwap/pages").Page} */
       let matchedPage;
       for (let i = 0; i < pages.length; i++) {
         matchedRoute = matchPath(request.url, pages[i]);
@@ -203,7 +218,7 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
       /** @type {import("react").ComponentType<any>} */
       const App = appModule.exports.default;
 
-      /** @type {import("react").ComponentType<import("../mwap/document").DocumentProps>} */
+      /** @type {import("react").ComponentType<any>} */
       const Document = documentModule.exports.default;
 
       const clientRoutes = pages
@@ -238,6 +253,7 @@ Promise.all([
       const { headers, html } = await serverHandler({
         loaderContext,
         location: request.url,
+        page: matchedPage,
         App,
         Document,
         Page,

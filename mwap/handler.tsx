@@ -1,7 +1,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { renderToStringAsync } from "react-async-ssr";
-import { StaticRouter } from "react-router-dom";
+import { StaticRouter, Route } from "react-router-dom";
 
 import type { DocumentContext } from "./document";
 import { DocumentProvider } from "./document";
@@ -9,9 +9,12 @@ import { DocumentProvider } from "./document";
 import type { LoaderContext } from "./loader";
 import { LoaderProvider } from "./loader";
 
+import type { Page } from "./pages";
+
 export type MwapHandlerContext = Partial<DocumentContext> & {
   loaderContext: LoaderContext;
   location: string;
+  page: Page;
   App?: React.ComponentType<any>;
   Document: React.ComponentType<any>;
   Page: React.ComponentType<any>;
@@ -29,6 +32,7 @@ export type MwapHandler = (
 const handler: MwapHandler = async ({
   loaderContext,
   location,
+  page,
   App = ({ children }) => children,
   Document,
   Page,
@@ -45,17 +49,17 @@ const handler: MwapHandler = async ({
 
   documentContext.appHtml = await renderToStringAsync(
     <React.Suspense fallback="">
-      <DocumentProvider context={documentContext}>
-        <LoaderProvider context={loaderContext}>
-          <div id="__mwapfallback">
-            <StaticRouter location={location}>
+      <StaticRouter location={location}>
+        <DocumentProvider context={documentContext}>
+          <LoaderProvider context={loaderContext}>
+            <div id="__mwapfallback">
               <App>
-                <Page />
+                <Route component={Page} path={page.path} exact={page.exact} />
               </App>
-            </StaticRouter>
-          </div>
-        </LoaderProvider>
-      </DocumentProvider>
+            </div>
+          </LoaderProvider>
+        </DocumentProvider>
+      </StaticRouter>
     </React.Suspense>
   );
 

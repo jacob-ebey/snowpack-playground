@@ -22,6 +22,7 @@
     "fastify-static": "4.0.1",
     "gray-matter": "4.0.3",
     "json-stringify-deterministic": "1.0.1",
+    "preact": "10.5.13",
     "prismjs": "1.23.0",
     "react": "17.0.2",
     "react-async-ssr": "0.7.2",

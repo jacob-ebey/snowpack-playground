@@ -304,12 +304,19 @@ async function createClientWebpackConfig({ cwd, buildDirectory }) {
       },
     },
 
+    resolve: {
+      alias: {
+        "react": "preact/compat",
+        "react-dom": "preact/compat",
+      }
+    },
+
     plugins: [
       // new (require("webpack-bundle-analyzer").BundleAnalyzerPlugin)(),
       new BundleStatsWebpackPlugin(),
       new webpack.container.ModuleFederationPlugin({
         name: "__MWAP_BUNDLE__",
-        filename: "pages.[contenthash].js",
+        filename: "mwap.[contenthash].js",
         exposes: {
           ...exposes,
           "./react": "react",

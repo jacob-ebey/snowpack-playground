@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import "prismjs/themes/prism-okaidia.css";
 
@@ -11,7 +11,9 @@ import Container from "../components/container";
 import NavMenu from "../components/nav-menu";
 
 const About = () => {
-  const doc = useLoader<DocData, DocArgs>("doc", { slug: "test" });
+  const { slug = "intro" } = useParams<DocArgs>();
+
+  const doc = useLoader<DocData, DocArgs>("doc", { slug });
 
   return (
     <main className="max-w-2xl mx-auto lg:mx-auto lg:grid lg:grid-flow-col lg:max-w-min">

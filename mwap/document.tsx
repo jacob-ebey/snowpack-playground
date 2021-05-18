@@ -3,15 +3,24 @@ import * as React from "react";
 import { useLoaderContext } from "./loader";
 
 export type DocumentScript = {
-  inline?: true;
+  async?: boolean;
+  defer?: boolean;
+  inline?: boolean;
+  preload?: boolean;
   type?: "module";
+  source: string;
+};
+
+export type DocumentStyle = {
+  inline?: boolean;
+  preload?: boolean;
   source: string;
 };
 
 export type DocumentContext = {
   appHtml: string;
   scripts: DocumentScript[];
-  styles: string[];
+  styles: DocumentStyle[];
 };
 
 const documentContext = React.createContext<DocumentContext>({
@@ -37,12 +46,19 @@ export const Preloads = () => {
   const { scripts, styles } = useDocumentContext();
   return (
     <>
-      {styles.map((style) => (
-        <link key={style} rel="preload" href={style} as="style" />
-      ))}
+      {styles.map((style) =>
+        style.inline || !style.preload ? null : (
+          <link
+            key={style.source}
+            rel="preload"
+            href={style.source}
+            as="style"
+          />
+        )
+      )}
 
       {scripts.map((script) =>
-        script.inline ? null : script.type === "module" ? (
+        script.inline || !script.preload ? null : script.type === "module" ? (
           <link key={script.source} rel="modulepreload" href={script.source} />
         ) : (
           <link
@@ -62,9 +78,13 @@ export const Styles = () => {
 
   return (
     <>
-      {styles.map((style) => (
-        <link key={style} rel="stylesheet" href={style} />
-      ))}
+      {styles.map((style) =>
+        style.inline ? (
+          <style dangerouslySetInnerHTML={{ __html: style.source }} />
+        ) : (
+          <link key={style.source} rel="stylesheet" href={style.source} />
+        )
+      )}
     </>
   );
 };
@@ -125,7 +145,13 @@ export const Scripts = () => {
             dangerouslySetInnerHTML={{ __html: script.source }}
           />
         ) : (
-          <script key={script.source} type={script.type} src={script.source} />
+          <script
+            key={script.source}
+            type={script.type}
+            async={script.async}
+            defer={script.defer}
+            src={script.source}
+          />
         )
       )}
     </>

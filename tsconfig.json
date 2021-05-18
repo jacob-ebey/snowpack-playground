@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "mwap/*": ["mwap/*"]
-    },
+    "checkJs": true,
     "module": "esnext",
     "jsx": "react",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "mwap/*": ["mwap/*"]
+    }
   }
 }

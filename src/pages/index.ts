@@ -7,12 +7,8 @@ const routes: Page[] = [
     exact: true,
   },
   {
-    module: "about",
-    path: "/about",
-  },
-  {
-    module: "about2",
-    path: "/about2",
+    module: "docs",
+    path: "/docs/:slug?",
   },
 ];
 

@@ -12,6 +12,7 @@ import stringify from "json-stringify-deterministic";
 
 const require = createRequire(import.meta.url);
 
+// @ts-ignore
 const flushChunks = webpackFlushChunks.default;
 const cwd = process.cwd();
 
@@ -27,6 +28,7 @@ const decodeParams = (encodedParams) => {
 };
 
 const createLoaderContext = (load) => {
+  /** @type {import("../mwap/loader").LoaderContextCache} */
   const cache = {};
 
   return {
@@ -80,21 +82,29 @@ const getDefault = (container, mod) =>
     prefix: "/_mwap/",
   });
 
-  app.get("/_mwap/loader/:loader/:encodedParams", async (request, reply) => {
-    const loader = request.params.loader;
-    const encodedParams = request.params.encodedParams.replace(/\.json$/, "");
-    const params = decodeParams(encodedParams);
+  app.get(
+    "/_mwap/loader/:loader/:encodedParams",
+    /**
+     *
+     * @param {any} request
+     * @param {import("fastify").FastifyReply} reply
+     */
+    async (request, reply) => {
+      const loader = request.params.loader;
+      const encodedParams = request.params.encodedParams.replace(/\.json$/, "");
+      const params = decodeParams(encodedParams);
 
-    const loaderFunc = await getDefault(mwapContainer, `./loaders/${loader}`);
-    const result = await loaderFunc(params);
+      const loaderFunc = await getDefault(mwapContainer, `./loaders/${loader}`);
+      const result = await loaderFunc(params);
 
-    if (result.headers) {
-      reply.headers(result.headers);
+      if (result.headers) {
+        reply.headers(result.headers);
+      }
+
+      reply.status(200);
+      reply.send(result.data);
     }
-
-    reply.status(200);
-    reply.send(result.data);
-  });
+  );
 
   app.get("/*", async (request, reply) => {
     try {
@@ -108,11 +118,14 @@ const getDefault = (container, mod) =>
         return result.data;
       });
 
-      /** @type {import("react-router-dom").RouteProps[]} */
+      /** @type {import("../mwap/pages").Page[]} */
       const pages = await getDefault(mwapContainer, "./pages/index");
 
+      /** @type {import("react-router-dom").match} */
       let matchedRoute;
+      /** @type {import("../mwap/pages").Page} */
       let matchedPage;
+
       for (let i = 0; i < pages.length; i++) {
         matchedRoute = matchPath(request.url, pages[i]);
         if (matchedRoute) {
@@ -129,7 +142,7 @@ const getDefault = (container, mod) =>
 
       /**
        * @typedef {import("../mwap/handler").MwapHandler} MwapHandler
-       * @typedef {import("react").ComponentType<import("../mwap/document").DocumentProps>} DocumentComponent
+       * @typedef {import("react").ComponentType<any>} DocumentComponent
        * @typedef {import("react").ComponentType<any>} ComponentType
        * @type {[MwapHandler, DocumentComponent, ComponentType, ComponentType]}
        */
@@ -139,6 +152,12 @@ const getDefault = (container, mod) =>
         getDefault(mwapContainer, "./app"),
         getDefault(mwapContainer, `./pages/${matchedPage.module}`),
       ]);
+
+      const mwapEntryChunks = flushChunks(stats, {
+        chunkNames: ["__MWAP_BUNDLE__"],
+      });
+      const mwapEntryChunk =
+        mwapEntryChunks.scripts[mwapEntryChunks.scripts.length - 1];
 
       const flushedChunks = flushChunks(stats, {
         chunkNames: [
@@ -167,7 +186,7 @@ const getDefault = (container, mod) =>
 const getMod = (container, mod) => container.get(mod).then((factory) => factory());
 const getDefault = (container, mod) => getMod(container, mod).then((m) => m.default);
 
-Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
+const hydrate = () => Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
   getMod(__MWAP_BUNDLE__, "./react"),
   getDefault(__MWAP_BUNDLE__, "./client"),
   getDefault(__MWAP_BUNDLE__, "./app"),
@@ -176,16 +195,27 @@ Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
   const routes = [${clientRoutes}];
   hydrate({ App, routes });
 }));
+      
+const remoteEntryScript = document.querySelector("script[src='${`${stats.publicPath}${mwapEntryChunk}`}']");
+if (typeof __MWAP_BUNDLE__ !== "undefined") {
+  console.log(remoteEntryScript);
+  hydrate();
+} else {
+  remoteEntryScript.addEventListener("load", hydrate);
+}
 `;
 
       const { headers, html } = await serverHandler({
         loaderContext,
         location: request.url,
+        page: matchedPage,
         App,
         Document,
         Page,
         scripts: [
           ...flushedChunks.scripts.map((script) => ({
+            defer: true,
+            preload: true,
             source: `${stats.publicPath}${script}`,
           })),
           {
@@ -193,9 +223,10 @@ Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
             source: hydrateScript,
           },
         ],
-        styles: flushedChunks.stylesheets.map(
-          (stylesheet) => `${stats.publicPath}${stylesheet}`
-        ),
+        styles: flushedChunks.stylesheets.map((stylesheet) => ({
+          preload: true,
+          source: `${stats.publicPath}${stylesheet}`,
+        })),
       });
       reply.headers(headers);
       reply.header("content-type", "text/html; charset=utf-8");
@@ -211,7 +242,6 @@ Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
       console.info("Application started on http://localhost:5000");
     });
   } catch (err) {
-    server.shutdown();
     throw err;
   }
 })();

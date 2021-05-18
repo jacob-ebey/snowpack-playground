@@ -1,5 +1,5 @@
 const routes = async () => {
-  return ["/", "/about", "/about2"];
+  return ["/", "/docs"];
 };
 
 export default routes;
