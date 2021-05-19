@@ -176,17 +176,17 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
       /** @type {import("../mwap/pages").Page[]} */
       const pages = pagesModule.exports.default;
 
-      /** @type {import("react-router-dom").match} */
       let matchedRoute;
       /** @type {import("../mwap/pages").Page} */
       let matchedPage;
       for (let i = 0; i < pages.length; i++) {
-        matchedRoute = matchPath(request.url, pages[i]);
+        matchedRoute = matchPath(pages[i], request.url);
         if (matchedRoute) {
           matchedPage = pages[i];
           break;
         }
       }
+      console.log(matchedRoute);
 
       if (!matchedRoute || !matchedPage.module) {
         reply.status(404);
@@ -224,12 +224,11 @@ function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
       const clientRoutes = pages
         .map(
           (page) => `{
-  exact: ${JSON.stringify(page.exact) || false},
   path: ${JSON.stringify(page.path)},
-  component: ${
+  element: ${
     page.module === matchedPage.module
-      ? "pageModule.default"
-      : `React.lazy(() => import("/src/pages/${page.module}.js"))`
+      ? "React.createElement(pageModule.default)"
+      : `React.createElement(React.lazy(() => import("/src/pages/${page.module}.js")))`
   }
 }`
         )

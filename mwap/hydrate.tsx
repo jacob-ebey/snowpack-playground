@@ -1,9 +1,16 @@
 import * as React from "react";
 import { hydrate } from "react-dom";
-import { BrowserRouter, Switch, Route, RouteProps } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { createLoaderContext, LoaderProvider } from "./loader";
 import { createLoader } from "./client/loader";
+
+type RouteProps = {
+  caseSensitive?: boolean;
+  children?: React.ReactNode;
+  element?: React.ReactElement | null;
+  path?: string;
+};
 
 export type MandateProps<T extends {}, K extends keyof T> = Omit<T, K> &
   {
@@ -35,18 +42,11 @@ const mwapHydrate = ({ App, routes }: MwapHydrateArgs) => {
         <div id="__mwapfallback">
           <BrowserRouter>
             <App>
-              <Switch>
+              <Routes>
                 {routes.map((route) => (
-                  <Route
-                    key={
-                      typeof route.path === "string"
-                        ? route.path
-                        : route.path.join("|")
-                    }
-                    {...route}
-                  />
+                  <Route key={route.path} {...route} />
                 ))}
-              </Switch>
+              </Routes>
             </App>
           </BrowserRouter>
         </div>

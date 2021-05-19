@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 
 /**
  * @param {string} filepath
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
 export function fileExists(filepath) {
   return fs.promises
@@ -20,7 +20,7 @@ export function fileExists(filepath) {
  * @param {object} options
  * @param {string} options.cwd
  * @param {boolean} options.isProd
- * @returns {import("snowpack").SnowpackUserConfig}
+ * @returns {Promise<import("snowpack").SnowpackUserConfig>}
  */
 export async function getBaseConfig(options) {
   const { cwd, isProd } = options;
@@ -36,8 +36,8 @@ export async function getBaseConfig(options) {
       await fileExists(postcssConfig))
     ? postcssConfig
     : undefined;
-  console.log("postcssConfigPath", postcssConfigPath);
 
+    /** @type {any} */
   const plugins = [
     ...conditionalPlugins,
     [require.resolve("./mwap-lazy.cjs"), { cwd }],

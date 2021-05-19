@@ -14,6 +14,11 @@
     "start": "cross-env NODE_ENV=production node ./mwap-cli/start",
     "vercel-build": "npm run build && npm run export"
   },
+  "resolutions": {
+    "preact": "10.5.13",
+    "react": "17.0.2",
+    "react-dom": "17.0.2"
+  },
   "dependencies": {
     "@tailwindcss/typography": "0.4.0",
     "acorn": "8.2.4",
@@ -24,13 +29,14 @@
     "fastify-http-proxy": "5.0.0",
     "fastify-static": "4.0.1",
     "gray-matter": "4.0.3",
+    "history": "5.0.0",
     "json-stringify-deterministic": "1.0.1",
     "preact": "10.5.13",
     "prismjs": "1.23.0",
     "react": "17.0.2",
     "react-async-ssr": "0.7.2",
     "react-dom": "17.0.2",
-    "react-router-dom": "5.2.0",
+    "react-router-dom": "6.0.0-beta.0",
     "remark": "13.0.0",
     "remark-html": "13.0.1",
     "remark-prism": "1.3.6",
@@ -41,7 +47,6 @@
     "@snowpack/plugin-react-refresh": "2.5.0",
     "@types/react": "17.0.5",
     "@types/react-dom": "17.0.5",
-    "@types/react-router-dom": "5.1.7",
     "autoprefixer": "10.2.5",
     "bundle-stats-webpack-plugin": "2.8.2",
     "cross-env": "7.0.3",

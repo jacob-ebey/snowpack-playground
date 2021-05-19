@@ -1,7 +1,8 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { renderToStringAsync } from "react-async-ssr";
-import { StaticRouter, Route } from "react-router-dom";
+import { StaticRouter } from "react-router-dom/server";
+import { Routes, Route } from "react-router-dom";
 import stringify from "json-stringify-deterministic";
 
 import type {
@@ -74,7 +75,7 @@ const handler: MwapHandler = async ({
             <LoaderProvider context={loaderContext}>
               <div id="__mwapfallback">
                 <App>
-                  <Route component={Page} path={page.path} exact={page.exact} />
+                  <Route element={<Page />} path={page.path} />
                 </App>
               </div>
             </LoaderProvider>

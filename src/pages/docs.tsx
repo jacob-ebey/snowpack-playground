@@ -11,7 +11,7 @@ import Container from "../components/container";
 import NavMenu from "../components/nav-menu";
 
 const About = () => {
-  const { slug = "intro" } = useParams<DocArgs>();
+  const { slug = "intro" } = useParams();
 
   const doc = useLoader<DocData, DocArgs>("doc", { slug });
 

@@ -4,11 +4,14 @@ const routes: Page[] = [
   {
     module: "home",
     path: "/",
-    exact: true,
   },
   {
     module: "docs",
-    path: "/docs/:slug?",
+    path: "/docs",
+  },
+  {
+    module: "docs",
+    path: "/docs/:slug",
   },
 ];
 

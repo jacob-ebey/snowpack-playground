@@ -5,7 +5,7 @@ import path from "path";
 import fastify from "fastify";
 import fastifyStatic from "fastify-static";
 
-import { matchPath } from "react-router-dom";
+import ReactRouterDom from "react-router-dom";
 import webpackFlushChunks from "webpack-flush-chunks";
 
 import { camelCase } from "camel-case";
@@ -19,7 +19,6 @@ const cwd = process.cwd();
 
 const encodeParams = (params) => {
   const json = stringify(params);
-
   return Buffer.from(json).toString("base64");
 };
 
@@ -125,13 +124,12 @@ const getDefault = (container, mod) =>
       /** @type {import("../mwap/pages").Page[]} */
       const pages = await getDefault(mwapContainer, "./pages/index");
 
-      /** @type {import("react-router-dom").match} */
       let matchedRoute;
       /** @type {import("../mwap/pages").Page} */
       let matchedPage;
 
       for (let i = 0; i < pages.length; i++) {
-        matchedRoute = matchPath(request.url, pages[i]);
+        matchedRoute = ReactRouterDom.matchPath(pages[i], request.url);
         if (matchedRoute) {
           matchedPage = pages[i];
           break;
@@ -187,12 +185,11 @@ const getDefault = (container, mod) =>
       const clientRoutes = pages
         .map(
           (page) => `{
-  exact: ${JSON.stringify(page.exact) || false},
   path: ${JSON.stringify(page.path)},
-  component: ${
+  element: ${
     page.module === matchedPage.module
-      ? "Page"
-      : `React.lazy(() => getMod(${containerName}, "./pages/${page.module}"))`
+      ? "React.createElement(Page)"
+      : `React.createElement(React.lazy(() => getMod(${containerName}, "./pages/${page.module}")))`
   }
 }`
         )
