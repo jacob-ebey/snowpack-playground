@@ -1,9 +1,10 @@
 const crypto = require("crypto");
 const path = require("path");
 
-const glob = require("glob");
 const { BundleStatsWebpackPlugin } = require("bundle-stats-webpack-plugin");
+const { camelCase } = require("camel-case");
 const { ESBuildMinifyPlugin } = require("esbuild-loader");
+const glob = require("glob");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
 const nodeExternals = require("webpack-node-externals");
@@ -53,13 +54,17 @@ module.exports = function plugin(config, args) {
     async optimize({ buildDirectory, log }, args = {}) {
       log("creating optimized production build using webpack");
 
+      const containerName = camelCase(pkg.name);
+
       const webpackClientConfig = await createClientWebpackConfig({
-        cwd: process.cwd(),
         buildDirectory,
+        containerName,
+        cwd: process.cwd(),
       });
       const webpackServerConfig = await createServerWebpackConfig({
-        cwd: process.cwd(),
         buildDirectory,
+        containerName,
+        cwd: process.cwd(),
       });
 
       await Promise.all([
@@ -133,7 +138,7 @@ async function getLoaderExposes(buildDirectory) {
 /**
  * @returns {import("webpack").Configuration}
  */
-async function createServerWebpackConfig({ cwd, buildDirectory }) {
+async function createServerWebpackConfig({ buildDirectory, containerName, cwd }) {
   const [exposes, loaderExposes] = await Promise.all([
     getExposes(buildDirectory),
     getLoaderExposes(buildDirectory),
@@ -163,7 +168,7 @@ async function createServerWebpackConfig({ cwd, buildDirectory }) {
 
     plugins: [
       new webpack.container.ModuleFederationPlugin({
-        name: "__MWAP_BUNDLE__",
+        name: containerName,
         filename: "mwap.cjs",
         library: { type: "commonjs" },
         exposes: {
@@ -281,7 +286,7 @@ async function createServerWebpackConfig({ cwd, buildDirectory }) {
 /**
  * @returns {import("webpack").Configuration}
  */
-async function createClientWebpackConfig({ cwd, buildDirectory }) {
+async function createClientWebpackConfig({ buildDirectory, containerName, cwd }) {
   const exposes = await getExposes(buildDirectory);
 
   console.log("output path", path.resolve(buildDirectory, "../production"));
@@ -306,16 +311,16 @@ async function createClientWebpackConfig({ cwd, buildDirectory }) {
 
     resolve: {
       alias: {
-        "react": "preact/compat",
+        react: "preact/compat",
         "react-dom": "preact/compat",
-      }
+      },
     },
 
     plugins: [
       // new (require("webpack-bundle-analyzer").BundleAnalyzerPlugin)(),
       new BundleStatsWebpackPlugin(),
       new webpack.container.ModuleFederationPlugin({
-        name: "__MWAP_BUNDLE__",
+        name: containerName,
         filename: "mwap.[contenthash].js",
         exposes: {
           ...exposes,

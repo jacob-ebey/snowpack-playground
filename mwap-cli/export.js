@@ -7,6 +7,7 @@ import { matchPath } from "react-router-dom";
 import webpackFlushChunks from "webpack-flush-chunks";
 
 import fsExtra from "fs-extra";
+import { camelCase } from "camel-case";
 import stringify from "json-stringify-deterministic";
 
 const require = createRequire(import.meta.url);
@@ -63,6 +64,9 @@ const getDefault = (container, mod) =>
   getMod(container, mod).then((m) => m.default);
 
 (async () => {
+  const pkg = require(path.resolve(cwd, "package.json"));
+  const containerName = camelCase(pkg.name);
+
   const json = await fs.promises.readFile(
     path.resolve(cwd, "dist/production/stats.json"),
     "utf8"
@@ -136,14 +140,14 @@ const getDefault = (container, mod) =>
         ]);
 
         const mwapEntryChunks = flushChunks(stats, {
-          chunkNames: ["__MWAP_BUNDLE__"],
+          chunkNames: [containerName],
         });
         const mwapEntryChunk =
           mwapEntryChunks.scripts[mwapEntryChunks.scripts.length - 1];
 
         const flushedChunks = flushChunks(stats, {
           chunkNames: [
-            "__MWAP_BUNDLE__",
+            containerName,
             "client",
             "app",
             `pages/${matchedPage.module}`,
@@ -158,34 +162,33 @@ const getDefault = (container, mod) =>
     component: ${
       page.module === matchedPage.module
         ? "Page"
-        : `React.lazy(() => getMod(__MWAP_BUNDLE__, "./pages/${page.module}"))`
+        : `React.lazy(() => getMod(${containerName}, "./pages/${page.module}"))`
     }
   }`
           )
           .join(",\n");
 
-        const hydrateScript = `
-  const getMod = (container, mod) => container.get(mod).then((factory) => factory());
-  const getDefault = (container, mod) => getMod(container, mod).then((m) => m.default);
-  
-  const hydrate = () => Promise.resolve(__MWAP_BUNDLE__.init({})).then(() => Promise.all([
-    getMod(__MWAP_BUNDLE__, "./react"),
-    getDefault(__MWAP_BUNDLE__, "./client"),
-    getDefault(__MWAP_BUNDLE__, "./app"),
-    getDefault(__MWAP_BUNDLE__, "./pages/${matchedPage.module}"),
-  ]).then(([React, hydrate, App, Page]) => {
-    const routes = [${clientRoutes}];
-    hydrate({ App, routes });
-  }));
-        
-  const remoteEntryScript = document.querySelector("script[src='${`${stats.publicPath}${mwapEntryChunk}`}']");
-  console.log(remoteEntryScript);
-  if (typeof __MWAP_BUNDLE__ !== "undefined") {
-    hydrate();
-  } else {
-    remoteEntryScript.addEventListener("load", hydrate);
-  }
-  `;
+          const hydrateScript = `
+const getMod = (container, mod) => container.get(mod).then((factory) => factory());
+const getDefault = (container, mod) => getMod(container, mod).then((m) => m.default);
+
+const hydrate = () => Promise.resolve(${containerName}.init({})).then(() => Promise.all([
+  getMod(${containerName}, "./react"),
+  getDefault(${containerName}, "./client"),
+  getDefault(${containerName}, "./app"),
+  getDefault(${containerName}, "./pages/${matchedPage.module}"),
+]).then(([React, hydrate, App, Page]) => {
+  const routes = [${clientRoutes}];
+  hydrate({ App, routes });
+}));
+
+const remoteEntryScript = document.querySelector("script[src='${`${stats.publicPath}${mwapEntryChunk}`}']");
+if (typeof ${containerName} !== "undefined") {
+  hydrate();
+} else {
+  remoteEntryScript.addEventListener("load", hydrate);
+}
+`;
 
         const { headers, html } = await serverHandler({
           loaderContext,
