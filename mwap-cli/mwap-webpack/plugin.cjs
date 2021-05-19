@@ -48,7 +48,10 @@ async function runWebpackConfig(webpackConfig, log, args) {
   }
 }
 
-module.exports = function plugin(config, args) {
+
+
+module.exports = function plugin(config, options) {
+
   return {
     name: "mwap-webpack-plugin",
     async optimize({ buildDirectory, log }, args = {}) {
@@ -138,7 +141,11 @@ async function getLoaderExposes(buildDirectory) {
 /**
  * @returns {import("webpack").Configuration}
  */
-async function createServerWebpackConfig({ buildDirectory, containerName, cwd }) {
+async function createServerWebpackConfig({
+  buildDirectory,
+  containerName,
+  cwd,
+}) {
   const [exposes, loaderExposes] = await Promise.all([
     getExposes(buildDirectory),
     getLoaderExposes(buildDirectory),
@@ -272,7 +279,7 @@ async function createServerWebpackConfig({ buildDirectory, containerName, cwd })
         },
         {
           test: /.*/,
-          exclude: [/\.js?$/, /\.json?$/, /\.css$/],
+          exclude: [/\.m?js?$/, /\.json?$/, /\.css$/],
           type: "asset/resource",
           generator: {
             filename: "assets/[name].[contenthash][ext]",
@@ -286,7 +293,11 @@ async function createServerWebpackConfig({ buildDirectory, containerName, cwd })
 /**
  * @returns {import("webpack").Configuration}
  */
-async function createClientWebpackConfig({ buildDirectory, containerName, cwd }) {
+async function createClientWebpackConfig({
+  buildDirectory,
+  containerName,
+  cwd,
+}) {
   const exposes = await getExposes(buildDirectory);
 
   console.log("output path", path.resolve(buildDirectory, "../production"));
@@ -478,7 +489,7 @@ async function createClientWebpackConfig({ buildDirectory, containerName, cwd })
         },
         {
           test: /.*/,
-          exclude: [/\.js?$/, /\.json?$/, /\.css$/],
+          exclude: [/\.m?js?$/, /\.json?$/, /\.css$/],
           type: "asset/resource",
           generator: {
             filename: "assets/[name].[contenthash][ext]",

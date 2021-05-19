@@ -40,6 +40,7 @@ export async function getBaseConfig(options) {
 
   const plugins = [
     ...conditionalPlugins,
+    [require.resolve("./mwap-lazy.cjs"), { cwd }],
     [
       require.resolve("@snowpack/plugin-postcss"),
       { config: postcssConfigPath },

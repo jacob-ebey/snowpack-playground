@@ -29,6 +29,8 @@ const documentContext = React.createContext<DocumentContext>({
   styles: [],
 });
 
+export const useDocumentContext = () => React.useContext(documentContext);
+
 export type DocumentProviderProps = {
   context: DocumentContext;
 };
@@ -170,8 +172,6 @@ export const Body: React.FC<React.HTMLAttributes<HTMLBodyElement>> = ({
     </body>
   );
 };
-
-export const useDocumentContext = () => React.useContext(documentContext);
 
 const Document = () => {
   return (

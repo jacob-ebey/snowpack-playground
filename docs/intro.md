@@ -7,9 +7,9 @@ Welcome to the 💰 Web App Platform documentation!
 Install `react`, `react-dom`, and `mwap` in your project:
 
 ```sh
-npm install react react-dom
+npm install mwap react react-dom
 # or
-yarn add react react-dom
+yarn add mwap react react-dom
 ```
 
 Open `package.json` and add the following scripts:

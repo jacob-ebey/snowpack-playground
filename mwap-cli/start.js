@@ -172,6 +172,18 @@ const getDefault = (container, mod) =>
         ],
       });
 
+      const resolveLazyModules = (chunkNames) => {
+        const flushed = flushChunks(stats, {
+          chunkNames,
+        });
+        return {
+          styles: flushed.stylesheets.map((stylesheet) => ({
+            preload: true,
+            source: `${stats.publicPath}${stylesheet}`,
+          })),
+        };
+      };
+
       const clientRoutes = pages
         .map(
           (page) => `{
@@ -212,6 +224,7 @@ if (typeof ${containerName} !== "undefined") {
         loaderContext,
         location: request.url,
         page: matchedPage,
+        resolveLazyModules,
         App,
         Document,
         Page,

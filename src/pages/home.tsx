@@ -1,7 +1,12 @@
 import * as React from "react";
 
+import lazy from "mwap/lazy";
+
 import Container from "../components/container";
 import Hero from "../components/hero";
+
+const LazyComp = lazy(() => import("../components/lazy-comp"));
+const LazyComp2 = lazy(() => import("../components/lazy-comp"));
 
 const Home: React.FC = () => {
   return (
@@ -15,6 +20,8 @@ const Home: React.FC = () => {
             to: "/docs",
           }}
         />
+
+        <LazyComp />
       </Container>
     </>
   );
