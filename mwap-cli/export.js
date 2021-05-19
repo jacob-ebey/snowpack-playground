@@ -154,6 +154,18 @@ const getDefault = (container, mod) =>
           ],
         });
 
+        const resolveLazyModules = (chunkNames) => {
+          const flushed = flushChunks(stats, {
+            chunkNames,
+          });
+          return {
+            styles: flushed.stylesheets.map((stylesheet) => ({
+              preload: true,
+              source: `${stats.publicPath}${stylesheet}`,
+            })),
+          };
+        };
+
         const clientRoutes = pages
           .map(
             (page) => `{
@@ -168,7 +180,7 @@ const getDefault = (container, mod) =>
           )
           .join(",\n");
 
-          const hydrateScript = `
+        const hydrateScript = `
 const getMod = (container, mod) => container.get(mod).then((factory) => factory());
 const getDefault = (container, mod) => getMod(container, mod).then((m) => m.default);
 
@@ -194,6 +206,7 @@ if (typeof ${containerName} !== "undefined") {
           loaderContext,
           location: staticRoute,
           page: matchedPage,
+          resolveLazyModules,
           App,
           Document,
           Page,
